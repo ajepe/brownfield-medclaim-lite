@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from medclaim.billing.history import get_statement_history
 from medclaim.billing.render_legacy import render_statement_legacy
 from medclaim.billing.statement import build_statement
+from medclaim.billing.statement_csv import export_statement_csv
+from medclaim.repo import PatientRepository
 
 app = FastAPI(title="med-claim-lite", version="0.1.0")
 
@@ -72,3 +74,14 @@ def patient_statement_legacy_text(patient_id: str) -> Response:
     if not stmt.lines:
         raise HTTPException(status_code=404, detail="no statement for patient")
     return Response(content=render_statement_legacy(stmt), media_type="text/plain")
+
+
+@app.get("/patients/{patient_id}/statement.csv")
+def patient_statement_csv(patient_id: str) -> Response:
+    if PatientRepository().get(patient_id) is None:
+        raise HTTPException(status_code=404, detail="no such patient")
+    return Response(
+        content=export_statement_csv(patient_id),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="statement.csv"'},
+    )

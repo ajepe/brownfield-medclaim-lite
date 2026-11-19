@@ -38,3 +38,17 @@ class ClaimRepository:
             return dict(row) if row else None
         finally:
             conn.close()
+
+    def paid_cents_by_claim(self, patient_id: str) -> dict[str, int]:
+        """Total remitted cents per claim id for the patient's claims."""
+        conn = db.connect()
+        try:
+            rows = conn.execute(
+                "select r.claim_id as claim_id, sum(r.paid_cents) as paid "
+                "from remittances r join claims c on c.id = r.claim_id "
+                "where c.patient_id = ? group by r.claim_id",
+                (patient_id,),
+            ).fetchall()
+            return {r["claim_id"]: r["paid"] for r in rows}
+        finally:
+            conn.close()
